@@ -1,0 +1,13 @@
+{
+  "files": [],
+  "references": [
+    { "path": "./tsconfig.app.json" },
+    { "path": "./tsconfig.node.json" }
+  ],
+  "compilerOptions": {
+    // ... 其他现有配置 ...
+    "types": ["node"], // 添加这一行
+    "target": "esnext",
+    "lib": ["es2022", "dom", "dom.iterable"]
+  }
+}
