@@ -15,10 +15,20 @@
       </n-space>
     </n-card>
 
-    <!-- 添加 Modal -->
+    <!-- 添加任务流的 Modal -->
     <CreateJobFlowModal
         v-model:show="showAddModal"
         @success="handleFlowCreated"
+    />
+    <!-- 删除任务流的 Modal -->
+    <n-modal
+        v-model:show="showDeleteModal"
+        preset="dialog"
+        title="确认"
+        content="确认删除任务流?"
+        positive-text="确认"
+        negative-text="取消"
+        @positive-click="handleDelete"
     />
   </div>
 </template>
@@ -82,6 +92,7 @@ const handleSwitchChange = async (row: FlowInfoDTO, value: boolean) => {
 }
 
 // 处理编辑操作
+const currentEditRow = ref<FlowInfoDTO | null>(null)
 const handleEdit = async (row: FlowInfoDTO) => {
   console.log('编辑:', row.flowDefinitionId)
   // 这里可以添加编辑逻辑
@@ -89,10 +100,14 @@ const handleEdit = async (row: FlowInfoDTO) => {
 }
 
 // 处理删除操作
-const handleDelete = async (row: FlowInfoDTO) => {
-  console.log('删除:', row.flowDefinitionId)
+const showDeleteModal = ref<boolean>(false)
+const handleDelete = async () => {
+  if (!currentEditRow.value) {
+    return
+  }
+  console.log('删除:', currentEditRow.value.flowDefinitionId)
   // 这里可以添加删除逻辑
-  await deleteFlow(row).then(getFlowInfoFunc);
+  await deleteFlow(currentEditRow.value).then(getFlowInfoFunc);
 }
 
 // 处理添加任务流操作
@@ -237,7 +252,10 @@ const columns: DataTableColumns<FlowInfoDTO> = [
             borderRadius: '0 6px 6px 0',
             padding: '0 12px'
           },
-          onClick: () => handleDelete(row)
+          onClick: () => {
+            showDeleteModal.value = true;
+            currentEditRow.value = row;
+          }
         }, () => '删除')
       ])
     }
