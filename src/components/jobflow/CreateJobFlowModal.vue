@@ -207,5 +207,7 @@ const resetForm = () => {
 .step-content {
   margin: 20px 0;
   min-height: 200px;
+  max-height: 400px;
+  overflow: auto;
 }
 </style>
