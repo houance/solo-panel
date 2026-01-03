@@ -4,10 +4,10 @@ import type {
     FlowDefinitionEntity,
     FlowInfoDTO,
     FlowNode,
-    FlowResponse,
     Node
 } from "./type.ts";
 import { restAxiosInstance } from "../../utils/http.ts"
+import type {FlowResponse} from "../FlowResponse.ts";
 
 const flowEditorUrl:string = "/flow-editor";
 const flowInfoUrl:string = "/flow-info";

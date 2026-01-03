@@ -1,7 +1,6 @@
 <template>
   <n-layout-header bordered class="header">
     <div class="header-left">
-      <h2 class="header-title">管理后台</h2>
     </div>
 
     <div class="header-right">
@@ -105,13 +104,6 @@ const handleUserSelect = (key: string) => {
 .header-left {
   display: flex;
   align-items: center;
-}
-
-.header-title {
-  margin: 0;
-  font-size: 20px;
-  font-weight: 600;
-  color: #333;
 }
 
 .header-right {

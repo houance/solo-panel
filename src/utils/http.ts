@@ -1,7 +1,13 @@
 import axios, {AxiosError, type AxiosResponse} from "axios";
-import { type FlowResponse } from "../api/jobflow/type.ts";
+import { type FlowResponse } from "../api/FlowResponse.ts";
 
 export const restAxiosInstance = axios.create({
+    baseURL: import.meta.env.VITE_API_BASE_URL,
+    timeout: 1000 * 15, // 15 秒超时
+});
+
+// 不做 response 拦截
+export const blobAxiosInstance = axios.create({
     baseURL: import.meta.env.VITE_API_BASE_URL,
     timeout: 1000 * 15, // 15 秒超时
 });

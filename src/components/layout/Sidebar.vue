@@ -10,8 +10,8 @@
       @expand="collapsed = false"
   >
     <div class="logo-container">
-      <h2 v-if="!collapsed" class="logo-text">Admin Panel</h2>
-      <h2 v-else class="logo-text">AP</h2>
+      <h2 v-if="!collapsed" class="logo-text">Flow Stack</h2>
+      <h2 v-else class="logo-text">FS</h2>
     </div>
 
     <n-menu
@@ -30,8 +30,9 @@ import { ref, computed, type Component } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import { NLayoutSider, NMenu } from 'naive-ui'
 import {
-  HomeOutline as DashboardIcon,
-  AnalyticsOutline as JobFlow,
+  HomeOutline,
+  AnalyticsOutline,
+  SaveOutline
 } from '@vicons/ionicons5'
 import { renderIcon } from '../../utils/iconRenderer'
 
@@ -45,8 +46,9 @@ const activeKey = ref(route.name as string)
 
 // 图标映射
 const iconMap: Record<string, Component> = {
-  dashboard: DashboardIcon,
-  jobFlow: JobFlow,
+  dashboard: HomeOutline,
+  jobFlow: AnalyticsOutline,
+  restic: SaveOutline,
 }
 
 // 从路由生成菜单选项
@@ -61,7 +63,7 @@ const menuOptions = computed(() => {
         return {
           label: route.meta.title as string,
           key: route.name as string,
-          icon: renderIcon(iconComponent || DashboardIcon), // 提供默认值
+          icon: renderIcon(iconComponent || HomeOutline), // 提供默认值
           path: route.path
         };
       })

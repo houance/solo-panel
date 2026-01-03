@@ -18,6 +18,12 @@ const routes: Array<RouteRecordRaw> = [
         name: 'JobFlow',
         component: () => import('../views/JobFlow.vue'),
         meta: { title: '任务流管理', icon: 'jobFlow' }
+    },
+    {
+        path: '/restic',
+        name: 'Restic',
+        component: () => import('../views/Restic.vue'),
+        meta: { title: '备份管理', icon: 'restic' }
     }
 ]
 

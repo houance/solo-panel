@@ -1,10 +1,3 @@
-export interface FlowResponse<T> {
-    statusCode: number
-    message: string
-    data: T
-    timestamp: string
-}
-
 export interface FlowInfoDTO {
     flowDefinitionId: string
     flowName: string
