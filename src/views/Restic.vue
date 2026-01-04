@@ -82,6 +82,10 @@
       </n-space>
     </n-card>
   </div>
+  <!-- snapshot file browser modal -->
+  <SnapFileBrowserModal
+    v-model:show="isModalVisible"
+  />
 </template>
 
 <script setup lang="ts">
@@ -112,6 +116,7 @@ import {
 import type {SnapshotMetaEntity, GroupData} from "../api/snapshot/type.ts";
 import {useGlobalTimerStore} from "../store/timer.ts";
 import {getAllSnapshots} from "../api/snapshot/api.ts";
+import SnapFileBrowserModal from "../components/snapshot/SnapFileBrowserModal.vue";
 
 // 响应式数据
 const snapshotMetaEntityList = ref<SnapshotMetaEntity[]>([])
@@ -313,6 +318,8 @@ const columns: DataTableColumns<SnapshotMetaEntity> = [
   }
 ]
 
+// snapshot file browser
+const isModalVisible = ref<boolean>(false)
 const handleBrowseFiles = (snapshotMetaEntity: SnapshotMetaEntity) => {
   console.log('浏览快照文件:', snapshotMetaEntity)
 
