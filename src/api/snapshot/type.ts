@@ -4,8 +4,8 @@ export interface SnapshotMetaEntity {
     backupRepository: string;
     createdAt: string;
     snapshotId: string;
-    fileCount: number;
-    dirCount: number;
+    fileCount: string;
+    dirCount: string;
     snapshotSizeBytes: string;
     hostname: string;
     username: string;

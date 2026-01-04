@@ -177,8 +177,8 @@ const groupedData = computed(() => {
     // 更新统计信息
     const sizeNum = parseInt(snapshot.snapshotSizeBytes, 10)
     groups[key].snapshotCount++
-    groups[key].totalFileCount += snapshot.fileCount
-    groups[key].totalDirCount += snapshot.dirCount
+    groups[key].totalFileCount += parseInt(snapshot.fileCount, 10)
+    groups[key].totalDirCount += parseInt(snapshot.dirCount, 10)
     groups[key].totalSize += sizeNum
     groups[key].snapshots.push(snapshot)
   })
@@ -199,7 +199,7 @@ const columns: DataTableColumns<SnapshotMetaEntity> = [
     key: 'backupTime',
     width: 160,
     render: (row) => {
-      return h('div', { style: 'font-family: monospace; font-size: 14px;' }, row.createdAt)
+      return h('div', { style: 'font-size: 14px;' }, row.createdAt)
     }
   },
   {
@@ -214,7 +214,7 @@ const columns: DataTableColumns<SnapshotMetaEntity> = [
     ellipsis: true,
     render: (row) => {
       return h('div', {
-        style: 'font-family: monospace; font-size: 14px;',
+        style: 'font-size: 14px;',
         title: row.backupRepository
       }, row.backupRepository)
     }
