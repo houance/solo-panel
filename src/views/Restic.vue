@@ -85,6 +85,7 @@
   <!-- snapshot file browser modal -->
   <SnapFileBrowserModal
     v-model:show="isModalVisible"
+    v-model:snapshotMetaEntity="selectedSnapMeta"
   />
 </template>
 
@@ -138,6 +139,16 @@ const formatBytes = (bytes: string | number): string => {
 // 格式化数字，添加千位分隔符
 const formatNumber = (num: number): string => {
   return num.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',')
+}
+
+// 格式化时间 (Java Instant.toString() 格式)
+const formatTime = (instantStr: string): string => {
+  try {
+    const date = new Date(instantStr)
+    return date.toLocaleString('zh-CN')
+  } catch (e) {
+    return instantStr
+  }
 }
 
 // 计算属性：过滤数据
@@ -199,7 +210,7 @@ const columns: DataTableColumns<SnapshotMetaEntity> = [
     key: 'backupTime',
     width: 160,
     render: (row) => {
-      return h('div', { style: 'font-size: 14px;' }, row.createdAt)
+      return h('div', { style: 'font-size: 14px;' }, formatTime(row.createdAt))
     }
   },
   {
@@ -320,17 +331,11 @@ const columns: DataTableColumns<SnapshotMetaEntity> = [
 
 // snapshot file browser
 const isModalVisible = ref<boolean>(false)
+const selectedSnapMeta = ref<SnapshotMetaEntity>();
 const handleBrowseFiles = (snapshotMetaEntity: SnapshotMetaEntity) => {
-  console.log('浏览快照文件:', snapshotMetaEntity)
-
-  // 这里可以打开文件浏览器模态框或跳转到文件浏览页面
-  // 示例：显示详情
-  window.alert(`正在打开文件浏览器...\n快照ID: ${snapshotMetaEntity.snapshotId}\n源目录: ${snapshotMetaEntity.sourceDirectory}\n备份仓库: ${snapshotMetaEntity.backupRepository}`)
-
-  // 实际项目中，你可能会：
-  // 1. 打开一个模态框显示文件树
-  // 2. 跳转到文件浏览页面
-  // 3. 调用API获取文件列表
+  // 打开 browser modal
+  isModalVisible.value = true;
+  selectedSnapMeta.value = snapshotMetaEntity;
 }
 
 // 使用定时器
@@ -342,7 +347,7 @@ onUnmounted(() => {
   timer.unregisterJob("getAllSnapshotsFunc");
 });
 
-// 方法
+// 获取snapshot data的方法
 const loadData = async () => {
   loading.value = true
   // 获取数据
