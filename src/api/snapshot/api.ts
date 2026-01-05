@@ -34,17 +34,17 @@ export async function submitDownloadJob(payload: RestoreRequest): Promise<string
     return response.data.data;
 }
 
-export async function getDownloadResult(jobId: string, isPreview: boolean): Promise<AxiosResponse<Object>> {
-    const response = await blobAxiosInstance.post<AxiosResponse<Object>>(
+export async function getDownloadResult(jobId: string, isPreview: boolean): Promise<AxiosResponse<Blob>> {
+    return await blobAxiosInstance.post<Blob>(
         resticUrl + "/get-download-result",
         null,
         {
             params: {
                 jobId: jobId,
                 isPreview: isPreview,
-            }
+            },
+            responseType: "blob",
         },
     );
-    return response.data;
 }
 

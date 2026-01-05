@@ -32,7 +32,7 @@
         <n-data-table
             :data="sortedFileList"
             :columns="columns"
-            :loading="loading"
+            :loading="browserLoading"
             :row-key="(row: SnapshotItemDTO) => row.path"
             :bordered="false"
             size="small"
@@ -45,12 +45,14 @@
     <n-modal
         v-model:show="previewVisible"
         preset="dialog"
+        :show-icon="false"
         style="width: 80%;"
         @close="previewVisible = false"
+        :loading="previewVisible"
     >
       <div class="preview-content">
         <!-- 图片预览 -->
-        <img
+        <n-image
             v-if="previewFileType === 'image' && previewUrl"
             :src="previewUrl"
             class="preview-image"
@@ -69,21 +71,13 @@
             :src="previewUrl"
             class="preview-pdf"
         />
-
-        <!-- 其他类型 -->
-        <div v-else class="unsupported-preview">
-          <n-icon size="64" color="#999">
-            <Document />
-          </n-icon>
-          <p>不支持预览此文件类型</p>
-        </div>
       </div>
     </n-modal>
   </n-modal>
 </template>
 
 <script setup lang="ts">
-import { ref, h, computed, watch, nextTick } from 'vue'
+import {ref, h, computed, watch, nextTick, type VNode} from 'vue'
 import {
   NModal,
   NDataTable,
@@ -101,22 +95,14 @@ import {
 } from '@vicons/ionicons5'
 import type { SnapshotItemDTO } from "../../api/snapshot/type.ts";
 import {getDownloadResult, getSnapshotItems, submitDownloadJob} from "../../api/snapshot/api.ts";
-import {it} from "node:test";
+import type {AxiosResponse} from "axios";
 
 const props = defineProps<{
   show: boolean;
   snapshotMetaEntity: any;
 }>()
 
-// 内部状态
-const loading = ref<boolean>(false)
-const fileList = ref<SnapshotItemDTO[]>([])
-const previewVisible = ref<boolean>(false)
-const previewFileType = ref<'image' | 'text' | 'pdf' | 'other' | null>(null)
-const previewUrl = ref<string>('')
-const previewTitle = ref<string>('文件预览')
-const currentPath = ref<string>('/')
-const breadcrumbs = ref<string[]>([])
+// 使用 message
 const message = useMessage()
 
 // 内部显示状态
@@ -154,9 +140,11 @@ watch(() => props.show, async (newVal) => {
 })
 
 // 获取文件列表
+const browserLoading = ref<boolean>(false)
+const fileList = ref<SnapshotItemDTO[]>([])
 const fetchFiles = async () => {
   try {
-    loading.value = true
+    browserLoading.value = true
     let tmp: SnapshotItemDTO[] = await getSnapshotItems(
         props.snapshotMetaEntity,
         currentPath.value
@@ -169,7 +157,7 @@ const fetchFiles = async () => {
     console.error('获取文件列表失败:', error)
     message.error('获取文件列表失败')
   } finally {
-    loading.value = false
+    browserLoading.value = false
   }
 }
 
@@ -195,6 +183,8 @@ const formatTime = (instantStr: string): string => {
 }
 
 // 打开目录
+const currentPath = ref<string>('/')
+const breadcrumbs = ref<string[]>([])
 const openDirectory = async (dirName: string) => {
   currentPath.value = currentPath.value === '/' ? `/${dirName}/` : `${currentPath.value}${dirName}/`
   breadcrumbs.value = currentPath.value.split('/').filter((part) => part)
@@ -216,95 +206,100 @@ const navigateTo = async (index: number) => {
   await fetchFiles()
 }
 
-// 获取文件扩展名
-const getFileExtension = (filename: string): string => {
-  return filename.slice((filename.lastIndexOf('.') - 1 >>> 0) + 2).toLowerCase()
-}
-
 // 预览文件
+const previewVisible = ref<boolean>(false)
+const previewFileType = ref<'image' | 'text' | 'pdf' | null>(null)
+const previewUrl = ref<string>('')
+const previewSupportType: string[] = ['jpg', 'jpeg', 'png', 'gif', 'txt', 'pdf']
 const previewFileFunc = async (item: SnapshotItemDTO) => {
-  previewVisible.value = true
-  previewTitle.value = `预览: ${item.name}`
-
-  const ext = getFileExtension(item.name)
-
+  const ext = item.name.slice((item.name.lastIndexOf('.') - 1 >>> 0) + 2).toLowerCase()
+  // 不支持的预览类型, 则返回
+  if (!previewSupportType.includes(ext)) {
+    message.error("暂不支持预览该类型文件");
+    return;
+  }
+  const response:AxiosResponse<Blob> = await downloadFile(item, true)
   if (['jpg', 'jpeg', 'png', 'gif'].includes(ext)) {
     previewFileType.value = 'image'
-    previewUrl.value = `https://picsum.photos/800/600?random=${Math.random()}`
+    previewUrl.value = window.URL.createObjectURL(new Blob([response.data]));
   } else if (['txt'].includes(ext)) {
     previewFileType.value = 'text'
-    const textContent = `文件名称: ${item.name}\n文件大小: ${formatSize(item.size)}\n修改时间: ${formatTime(item.ctime)}`
-    previewUrl.value = URL.createObjectURL(new Blob([textContent], { type: 'text/plain' }))
+    previewUrl.value = window.URL.createObjectURL(new Blob([response.data]));
   } else if (ext === 'pdf') {
     previewFileType.value = 'pdf'
-    previewUrl.value = 'https://www.w3.org/WAI/ER/tests/xhtml/testfiles/resources/pdf/dummy.pdf'
-  } else {
-    previewFileType.value = 'other'
+    previewUrl.value = window.URL.createObjectURL(new Blob([response.data]));
   }
+  // 打开预览框
+  previewVisible.value = true
 }
 
 // 下载文件
-const downloadFile = async (item: SnapshotItemDTO, isPreview: boolean) => {
-  loading.value = true
+const downloadFile = async (item: SnapshotItemDTO, isPreview: boolean): Promise<any> => {
+  browserLoading.value = true
 
   try {
     const jobId = await submitDownloadJob({
       snapshotMetaEntity: props.snapshotMetaEntity,
       snapshotItemDTOList: [item]
     });
-    const downloadResult = await getDownloadResult(jobId, isPreview);
-    if (downloadResult === undefined || downloadResult.status >= 400) {
-      message.error("文件下载失败. 消息是 " + downloadResult.data)
-      loading.value = false
-      return;
-    } else if (downloadResult.status === 202) {
-      // 循环5此, 间隔3分钟
+    let downloadResult: AxiosResponse<Blob> | undefined = undefined;
+    for (let i = 0; i < 10; i++) {
+      downloadResult = await getDownloadResult(jobId, isPreview);
+      if (downloadResult === undefined || downloadResult.status >= 400) {
+        message.error("文件下载失败. 消息是 " + downloadResult.data)
+        browserLoading.value = false
+        return undefined;
+      } else if (downloadResult.status === 202) {
+        message.info('下载中')
+        await new Promise(resolve => setTimeout(resolve, 1000 * 5))
+      } else {
+        break;
+      }
     }
-
-    const content = `文件: ${item.name}\n大小: ${formatSize(item.size)}\n时间: ${formatTime(item.ctime)}`
-    const blob = new Blob([content], { type: 'application/octet-stream' })
-    const url = URL.createObjectURL(blob)
-
-    const link = document.createElement('a')
-    link.href = url
-    link.download = item.name
-    document.body.appendChild(link)
-    link.click()
-    document.body.removeChild(link)
-    URL.revokeObjectURL(url)
-
-    message.success('下载任务已开始')
+    if (downloadResult === undefined) {
+      message.error("服务器没有返回文件")
+      browserLoading.value = false
+      return undefined;
+    }
+    // 如果是 preview, 则直接返回
+    if (isPreview) {
+      return downloadResult;
+    }
+    // 否则触发下载
+    let filename:string = "";
+    // 从响应头中获取 Content-Disposition
+    const contentDisposition = downloadResult.headers['content-disposition'];
+    // 解析文件名（示例：处理 UTF-8 编码和引号）
+    if (contentDisposition) {
+      const filenameRegex = /filename\*?=([^;]+)/gi;
+      const matches = filenameRegex.exec(contentDisposition);
+      if (matches != null && matches[1]) {
+        // 处理类似 "UTF-8''filename.ext" 或 "filename.ext" 的情况
+        filename = decodeURIComponent(matches[1].replace(/^UTF-8''/i, ''));
+        // 去除可能的引号
+        filename = filename.replace(/['"]/g, '');
+      }
+    } else {
+      // 弹窗异常
+      message.error("服务器异常, filename 为空");
+      return;
+    }
+    // 设置 url 和 link
+    const url = window.URL.createObjectURL(new Blob([downloadResult.data]));
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = filename;
+    // 触发下载
+    document.body.appendChild(link);
+    link.click();
+    // 清理
+    document.body.removeChild(link);
+    window.URL.revokeObjectURL(url);
+    return undefined;
   } catch (e) {
     message.error('文件下载失败')
   } finally {
-    loading.value = false
-  }
-}
-
-const downloadFileTmp = async (item: SnapshotItemDTO) => {
-  loading.value = true
-
-  try {
-    await new Promise(resolve => setTimeout(resolve, 1000))
-
-    const content = `文件: ${item.name}\n大小: ${formatSize(item.size)}\n时间: ${formatTime(item.ctime)}`
-    const blob = new Blob([content], { type: 'application/octet-stream' })
-    const url = URL.createObjectURL(blob)
-
-    const link = document.createElement('a')
-    link.href = url
-    link.download = item.name
-    document.body.appendChild(link)
-    link.click()
-    document.body.removeChild(link)
-    URL.revokeObjectURL(url)
-
-    message.success('下载任务已开始')
-  } catch (e) {
-    console.error('文件下载失败:', e)
-    message.error('文件下载失败')
-  } finally {
-    loading.value = false
+    browserLoading.value = false
   }
 }
 
@@ -326,12 +321,15 @@ const columns = [
           ? h(NIcon, { component: DocumentText, style: 'margin-right: 8px;' })
           : h(NIcon, { component: Folder, style: 'margin-right: 8px;' })
 
-      const content = row.type === 'dir'
-          ? h(NButton, {
-            text: true,
-            onClick: () => openDirectory(row.name)
-          }, { default: () => row.name })
-          : row.name
+      let content
+      if (row.type === 'dir') {
+        content = h(NButton, {
+          text: true,
+          onClick: () => openDirectory(row.name)
+        }, { default: () => row.name })
+      } else {
+        content = row.name
+      }
 
       return h('div', {
         style: 'display: flex; align-items: center;'
@@ -355,17 +353,28 @@ const columns = [
     key: 'actions',
     width: 150,
     render: (row: SnapshotItemDTO) => {
-      return h(NSpace, { size: 'small' }, [
-        row.type === 'file' && h(NButton, {
-          size: 'small',
-          onClick: () => previewFileFunc(row)
-        }, '预览'),
-        h(NButton, {
-          size: 'small',
-          type: 'primary',
-          onClick: () => downloadFile(row)
-        }, '下载')
-      ].filter(Boolean))
+      const buttons:VNode[] = []
+
+      if (row.type === 'file') {
+        buttons.push(
+            h(NButton, {
+              size: 'small',
+              onClick: () => previewFileFunc(row)
+            }, { default: () => '预览' })
+        )
+      }
+
+      buttons.push(
+          h(NButton, {
+            size: 'small',
+            type: 'primary',
+            onClick: () => downloadFile(row, false)
+          }, { default: () => '下载' })
+      )
+
+      return h(NSpace, { size: 'small' }, {
+        default: () => buttons
+      })
     }
   }
 ]

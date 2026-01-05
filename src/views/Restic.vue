@@ -81,12 +81,12 @@
         </n-collapse>
       </n-space>
     </n-card>
+    <!-- snapshot file browser modal -->
+    <SnapFileBrowserModal
+        v-model:show="isModalVisible"
+        v-model:snapshotMetaEntity="selectedSnapMeta"
+    />
   </div>
-  <!-- snapshot file browser modal -->
-  <SnapFileBrowserModal
-    v-model:show="isModalVisible"
-    v-model:snapshotMetaEntity="selectedSnapMeta"
-  />
 </template>
 
 <script setup lang="ts">
